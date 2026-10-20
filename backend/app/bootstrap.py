@@ -19,13 +19,16 @@ ROLES = {
 def main() -> None:
     email = os.environ.get("ADMIN_EMAIL", "").strip().lower()
     password = os.environ.get("ADMIN_PASSWORD", "")
-    if not email or len(password) < 12:
+    if (email or password) and (not email or len(password) < 12):
         raise SystemExit("Defina ADMIN_EMAIL y ADMIN_PASSWORD de al menos 12 caracteres")
     with SessionLocal.begin() as db:
         for name, description in ROLES.items():
             if db.scalar(select(Role).where(Role.nombre == name)) is None:
                 db.add(Role(nombre=name, descripcion=description))
         db.flush()
+        if not email:
+            print("Roles disponibles verificados; se omitió creación de administrador inicial")
+            return
         admin = db.scalar(select(User).where(User.email == email))
         if admin is None:
             admin_role = db.scalar(select(Role).where(Role.nombre == "ADMINISTRADOR"))
