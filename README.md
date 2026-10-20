@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Backend de Universidad Digital
 
 Para las Clases 3 y 4 de CI/CD, utilice el workflow `../.github/workflows/backend-cicd.yml` y la guía `../docs/GUIA_CICD_RAILWAY.md`. Railway ejecuta las migraciones y el bootstrap como comando previo al despliegue; PostgreSQL remoto se configura por referencias `DB_*` en el servicio API. El `compose.yaml` de esta carpeta corresponde a la práctica local de la Clase 1.
@@ -76,3 +77,18 @@ Si `api` no inicia, consulte primero los logs de `db` y `migrate`; `depends_on` 
 `Dockerfile` instala dependencias bloqueadas antes de copiar código para aprovechar la caché, ejecuta con un usuario sin privilegios y arranca en el puerto de `PORT` o 8000. `.dockerignore` excluye entorno local, pruebas y credenciales. `compose.yaml` define API, migración de una sola ejecución, PostgreSQL 18, un healthcheck y un volumen persistente. En PostgreSQL 18 el volumen oficial se monta en `/var/lib/postgresql`, conforme a la documentación de la imagen.
 
 La ejecución de `docker build` y `docker compose` requiere Docker en el equipo del estudiante. Las pruebas de API y sintaxis fueron ejecutadas antes de entregar el paquete; no se afirma que un despliegue externo ya esté realizado.
+=======
+# Universidad Digital
+
+Material base del Módulo 11. La carpeta `backend/` contiene la API completa que los estudiantes reciben **antes** de la Clase 1 de Docker. El cuaderno de la clase explica y practica la contenerización; no dedica sus tres horas a implementar los dominios académicos.
+
+La estructura y las siete entidades provienen de `01_Modulo_9_Semana_1.ipynb`: Usuario, Rol, Usuario Rol, Materia, Período Académico, Inscripción y Calificación. Para hacer verificable la autorización docente, el MVP agrega `materias.id_docente` como asignación de un docente responsable por materia. El frontend React descrito allí queda fuera de este paquete: el Módulo 11 lo tratará en una clase posterior.
+
+Abra [backend/README.md](backend/README.md) para instalación, dominios, endpoints, migraciones, pruebas y límites de este MVP.
+
+Las Clases 3 y 4 incluyen el flujo real en `.github/workflows/backend-cicd.yml`, una comprobación remota en `backend/scripts/check_deployment.py` y sus cuadernos en `docs/`. Lea [la guía de CI/CD y Railway](docs/GUIA_CICD_RAILWAY.md) antes de configurar cuentas, variables y despliegue. El servicio remoto no se crea con el paquete: cada estudiante lo configura con sus propias cuentas.
+
+Las Clases 5 y 6 agregan el frontend React completo en [`frontend/`](frontend/README.md), con login, pantallas por rol y conexión a la API. Los cuadernos de despliegue y auditoría están en `docs/`. El trabajo de clase comienza con el frontend ya desarrollado; se concentra en Vercel y la validación integral.
+
+Cuadernos: [`Clase 5`](docs/Modulo_11_Clase_5_Vercel_Frontend_Universidad_Digital.ipynb) y [`Clase 6`](docs/Modulo_11_Clase_6_Tutoria_Auditoria_Produccion.ipynb). El proyecto de clase usa datos sintéticos; ningún dominio remoto o cuenta de proveedor se incluye en el paquete.
+>>>>>>> a2556fb9ae4cbbb4e0c33eee43311ad25ad82c2b
