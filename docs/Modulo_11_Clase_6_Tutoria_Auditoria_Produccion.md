@@ -1,0 +1,68 @@
+# Módulo 11 de 12. DevOps y despliegue profesional
+
+## Clase 6. Tutoría: revisión del sistema completo en producción
+
+**Duración propuesta:** 180 minutos. **Punto de partida:** frontend React ya publicado en Vercel, backend FastAPI en Railway y PostgreSQL remoto, con datos sintéticos del laboratorio. Los códigos del backend y del frontend se distribuyeron antes de sus clases de despliegue. **Resultado:** matriz de auditoría con evidencia de los tres roles, comparación local/producción y un plan de recuperación verificado sin borrar datos reales.
+
+**Objetivos de la tutoría.** Validar login, carga, navegación, creación, edición y reglas de negocio desde las dos aplicaciones desplegadas; comprobar que una restricción de rol también funciona en la API; diferenciar un error de conexión, uno de autorización y uno de validación; contrastar el comportamiento local con producción; y evaluar una revisión final propuesta por IA con evidencia humana. “Producción” en esta clase significa el entorno desplegado de práctica, no la habilitación del MVP para datos personales de estudiantes reales.
+
+| Tiempo | Actividad conducida | Producto |
+|---|---|---|
+| 0–20 min | Identificar versiones y salud de Vercel/Railway | URLs, commit, estado `ready`. |
+| 20–75 min | Tres usuarios de prueba y ciclo académico | Matriz de operaciones y resultados. |
+| 75–110 min | Edición, validaciones y prohibiciones | Evidencias 200/201, 401/403, 409/422. |
+| 110–140 min | Comparación local vs producción y carga | Diferencias explicadas con Network. |
+| 140–165 min | Recuperación, revisión con IA y corrección | Diagnóstico y nuevo estado saludable. |
+| 165–180 min | Informe de auditoría y retroalimentación | Evidencias y pendientes priorizados. |
+
+Si el frontend todavía no se publicó, registre esa limitación y complete la parte local; no describa una prueba local como validación remota. Antes de iniciar, el docente debe disponer de una base de práctica y cuentas ficticias. Evite usar correos, calificaciones o expedientes de personas reales.
+
+## 1. Asegurar que observamos el mismo sistema
+
+Abra el repositorio GitHub y anote el commit que Vercel muestra en **Deployments**. En Railway identifique el despliegue de API activo y la revisión de sus variables; compruebe `https://SU-API/health/live` y `/health/ready`. Abra en otra pestaña la URL Vercel y recargue directamente `/login`, `/subjects` y `/grades` para probar el rewrite de la SPA. Observe el título y el panel; si `/grades` devuelve 404 solo al recargar, revise el `vercel.json` desplegado y Root Directory.
+
+No basta con que los dos dominios muestren un 200: la prueba de integración empieza cuando Vercel envía solicitudes al dominio Railway correcto y la API responde con datos de PostgreSQL remoto. En **DevTools → Network** filtre por `api/v1`. Registre el origen de cada solicitud, código HTTP, duración aproximada y tipo de respuesta; oculte el cuerpo de login y el header `Authorization`. El frontend guarda el token solo en memoria, así que una recarga puede exigir nuevo login. Esta decisión es observable y debe interpretarse como comportamiento esperado de este MVP.
+
+## 2. Preparar tres personajes y un ciclo académico de prueba
+
+Inicie sesión con el administrador inicial configurado en Railway. Cree una cuenta **docente** y una **estudiante** con correos ficticios exclusivos del laboratorio y contraseñas distintas de al menos 12 caracteres; entregue esas contraseñas por un canal controlado de la clase, no en capturas ni Git. Cree una materia con código nuevo, asigne al docente y registre un período `ABIERTO` cuya fecha inicial sea anterior al día de la prueba y la final posterior. La API valida que una inscripción ocurra durante un período abierto y dentro de sus fechas; una fecha que solo coincida por error con la zona horaria puede producir un resultado inesperado cerca de medianoche, y debe documentarse antes de aceptar el sistema para otro calendario.
+
+Como estudiante, inicie sesión en una ventana privada diferente para que no se compartan estados de memoria. Compruebe que **Usuarios** y **Reportes** no aparecen. Inscríbase en la materia y registre el identificador de inscripción. Como docente asignado, en otra sesión compruebe que la inscripción es visible y cree una nota `PARCIAL` entre 0 y 100; edítela y consulte el reporte del período. Como estudiante, vuelva a cargar sus notas y compruebe que puede leerla, pero no ve el formulario de calificación. Como administrador, compruebe que el reporte agregado y los tres usuarios son visibles. Evite borrar calificaciones solo para demostrar que existe un botón; una eliminación se reserva para datos desechables definidos expresamente.
+
+La matriz de auditoría recomendada se completa durante la práctica:
+
+| Rol / flujo | Acción y dato de prueba | Resultado esperado | Evidencia recogida |
+|---|---|---|---|
+| Administrador / usuarios | Crear docente y estudiante | 201, aparecen en directorio | Captura sin contraseñas. |
+| Administrador / oferta | Crear materia y período | 201 y estado visible | Código y período. |
+| Estudiante / inscripción | Inscribirse en materia vigente | 201, estado ACTIVA | ID de inscripción. |
+| Docente / nota | Crear y editar nota de materia asignada | 201 y 200; valor actualizado | ID, nota y fecha. |
+| Docente / reporte | Consultar período | Solo materias asignadas | Datos agregados. |
+| Estudiante / consulta | Ver su nota y no ver administración | Acceso acotado | Navegación. |
+| Auditor / API | Intentar operación fuera de rol con token de prueba | 403 | Código sin token. |
+
+## 3. Probar errores sin alterar la infraestructura
+
+Una interfaz que oculta un botón no demuestra una regla de seguridad. Para verificar 403, utilice `/docs` del backend con un usuario **estudiante de laboratorio**, autorice su sesión allí y pruebe una operación reservada, por ejemplo `POST /api/v1/subjects` con un cuerpo de prueba. Debe responder **403** sin crear una materia. Haga la demostración solo en cuentas de clase; nunca copie el token a un informe. También puede verificar que un estudiante no lee el directorio de usuarios. En la UI, introduzca `101` para una nota: el campo impide enviarla; con la API, el modelo del backend debe rechazar el valor con **422**. Explique por qué ambos controles se complementan.
+
+Para 409, intente inscribir al mismo estudiante en la misma materia y período por segunda vez. La API debe impedir el duplicado y la interfaz debe presentar el mensaje, manteniendo una sola inscripción activa. Para 401, cierre sesión y abra directamente una ruta privada; la interfaz lo envía a login. En `/docs`, una llamada a un endpoint protegido sin credenciales debe recibir 401. Distinga 401 de 403 y de un error de red: ninguno se “soluciona” desactivando las comprobaciones. Si falla un paso, registre el cuerpo de error **sin datos sensibles**, el endpoint y el estado de Railway antes de cambiar configuraciones.
+
+Ensaye una recuperación de configuración reversible: en el navegador, compare la respuesta del frontend desde su dominio Vercel y desde el origen local. Si uno funciona y otro presenta CORS, compruebe el encabezado `Origin` y `CORS_ORIGINS` del servicio Railway; agregue solo el origen exacto faltante, aplique el cambio y confirme `/health/ready` antes de repetir el login. No provoque el fallo apagando PostgreSQL ni eliminando la base. No cambie `JWT_SECRET` para una demostración: invalidaría las sesiones existentes. Si necesita examinar un rollback de frontend, compare dos despliegues Vercel del mismo proyecto con datos de laboratorio y vuelva a activar el último verificado desde el panel según el procedimiento disponible en su cuenta.
+
+## 4. Comparar ejecución local y producción
+
+En local, Vite entrega la app desde `http://127.0.0.1:5173`, y la API puede ejecutarse desde Docker en `http://127.0.0.1:8000`. En Vercel y Railway ambos orígenes son HTTPS; la base se administra en Railway. Anote los cuatro valores observados: origen frontend local, origen frontend remoto, origen API local y origen API remoto. La variable `VITE_API_BASE_URL` del build decide adónde apunta el JavaScript; el `CORS_ORIGINS` del backend decide qué páginas pueden invocarlo en el navegador. Un build Vercel terminado antes de cambiar `VITE_API_BASE_URL` conserva la URL anterior hasta un nuevo despliegue.
+
+Abra Network con la caché deshabilitada solo durante la medición y recargue login y una tabla. Registre tiempos de respuesta y volumen transferido como observaciones de su sesión, sin inventar un benchmark; los valores dependen de red, región y calentamiento. Compruebe estados de carga, lista vacía y mensaje de error. En una pantalla estrecha verifique la navegación horizontal y que formularios y tablas no oculten controles esenciales. Recargue una ruta profunda. Si la vista local funciona y la remota falla, compare primero URL, CORS, estado de Railway y versión del commit, antes de atribuir el problema al código React.
+
+## 5. Revisión final con IA y responsabilidad humana
+
+Entregue a una herramienta de IA una matriz de resultados **anónima** y un fragmento de error sin tokens: “Revisa esta auditoría de una SPA React en Vercel con API FastAPI/PostgreSQL en Railway. Separa defectos comprobados, hipótesis y mejoras futuras. Para cada defecto indica la evidencia que falta, el componente probable y una prueba mínima de regresión. No inventes resultados, no solicites contraseñas y no aconsejes abrir CORS a todos los orígenes”. Contraste cada afirmación del modelo con Network, logs y documentación de los proveedores.
+
+Es probable que surjan mejoras que exceden el MVP: renovación/revocación de sesión, recuperación de contraseña, paginación más allá de 100 registros, trazabilidad de modificaciones de notas, sincronización de fecha/zona horaria y manejo de cambios de esquema. Regístrelas como límites reales, no como funciones supuestamente incluidas. El backend y el frontend del curso son demostraciones; un uso institucional requiere análisis de seguridad, datos personales, accesibilidad, rendimiento, respaldo, observabilidad y validación de usuarios adicionales.
+
+## 6. Entregable de la tutoría
+
+Prepare un informe breve con la matriz diligenciada, URLs públicas de la práctica, commits que se probaron, capturas sin secretos, código de estado y respuesta de cada caso, diferencias local/producción, un incidente explicado como **síntoma → causa comprobada → corrección → nueva evidencia**, y un backlog priorizado con responsable sugerido. El docente califica la trazabilidad de la prueba, la distinción de los roles y la explicación causal de los fallos. Un caso no ejecutado se marca **pendiente**, nunca aprobado por inferencia. La auditoría final acredita solo los flujos que realmente fueron observados.
+
+**Fuentes y referentes.** Revise [Vercel: despliegues Git](https://vercel.com/docs/git), [Vercel: Vite SPA](https://vercel.com/docs/frameworks/frontend/vite), [Vite: variables](https://vite.dev/guide/env-and-mode), [Railway: healthchecks](https://docs.railway.com/deployments/healthchecks), [FastAPI: CORS](https://fastapi.tiangolo.com/tutorial/cors/) y el contrato OpenAPI de la API. Los criterios de funcionalidad, fiabilidad, seguridad y usabilidad se interpretan con ISO/IEC 25010:2023 como marco de revisión, sin afirmar certificación.
